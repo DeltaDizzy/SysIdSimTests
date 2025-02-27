@@ -9,8 +9,8 @@ public class Constants {
     public static final class ShooterConstants {
         public static final int ShooterCANId = 9;
         public static final double ShooterKs = 0.4;
-        public static final double ShooterKv = 0.12;
+        public static final double ShooterKv = 0.0191 * 2 * Math.PI;
         public static final double ShooterKa = 0.018;
-        public static final double ShooterKp = 0;
+        public static final double ShooterKp = 0;//0.0008;
     }
 }

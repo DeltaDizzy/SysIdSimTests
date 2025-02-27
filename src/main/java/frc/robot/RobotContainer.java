@@ -4,9 +4,9 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Minute;
-import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
+
+import com.ctre.phoenix6.SignalLogger;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.networktables.DoubleSubscriber;
@@ -31,10 +31,13 @@ public class RobotContainer {
 
   public Command getAutonomousCommand() {
     return Commands.sequence(
+      //Commands.runOnce(() -> SignalLogger.start()),
       shooter.sysIdQuasistatic(Direction.kForward),
       shooter.sysIdQuasistatic(Direction.kReverse),
       shooter.sysIdDynamic(Direction.kForward),
-      shooter.sysIdDynamic(Direction.kReverse)
+      shooter.sysIdDynamic(Direction.kReverse),
+     // Commands.runOnce(() -> SignalLogger.stop()),
+      shooter.runWithSpeed(RotationsPerSecond.of(0))
     );
   }
 }

@@ -23,6 +23,8 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -40,7 +42,7 @@ public class Shooter extends SubsystemBase {
   VoltageOut voltage = new VoltageOut(0);
   DCMotorSim motorSim;
   SysIdRoutine routine;
-
+  String state;
   /** Creates a new Shooter. */
   public Shooter() {
     shooter = new TalonFX(ShooterConstants.ShooterCANId);
@@ -56,22 +58,34 @@ public class Shooter extends SubsystemBase {
     if (Robot.isSimulation()) {
       motorSim = new DCMotorSim(
         LinearSystemId.createDCMotorSystem(
-          ShooterConstants.ShooterKv, 
+          ShooterConstants.ShooterKv / (2 * Math.PI), 
           ShooterConstants.ShooterKa
         ), 
         DCMotor.getFalcon500(1)
       );
     }
-
     routine = new SysIdRoutine(
       new SysIdRoutine.Config(
         null, 
         null, 
         null, 
-        (state) -> SignalLogger.writeString("state", state.toString())), 
+        null
+        // (state) -> {
+        //   this.state = state.toString();
+        //   SignalLogger.writeString("state", state.toString());
+        // }
+      ), 
       new SysIdRoutine.Mechanism(
         (volts) -> shooter.setControl(voltage.withOutput(volts)), 
-        null, 
+        (log) -> {
+          log.motor("shooter").angularPosition(
+            shooter.getPosition().getValue()
+          ).angularVelocity(
+            shooter.getVelocity().getValue()
+          ).voltage(
+            shooter.getMotorVoltage().getValue()
+          );
+        }, 
         this, 
         "shooter"
       )
@@ -83,15 +97,20 @@ public class Shooter extends SubsystemBase {
   }
 
   public Command runWithSpeed(AngularVelocity speed) {
-    return runOnce(() -> shooter.setControl(velocity.withVelocity(speed))).andThen(Commands.idle(this));
+    return runOnce(() -> shooter.setControl(velocity.withVelocity(speed)))
+              .andThen(Commands.idle(this));
   }
 
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    return routine.quasistatic(direction).andThen(Commands.waitUntil(() -> getShooterSpeedRps() < 0.4));
+    return routine.quasistatic(direction)
+              .andThen(Commands.waitUntil(() -> getShooterSpeedRps() < 0.4))
+              .andThen(Commands.waitSeconds(1));
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    return routine.dynamic(direction).andThen(Commands.waitUntil(() -> getShooterSpeedRps() < 0.4));
+    return routine.dynamic(direction)
+              .andThen(Commands.waitUntil(() -> getShooterSpeedRps() < 0.4))
+              .andThen(Commands.waitSeconds(1));
   }
 
   @Override
